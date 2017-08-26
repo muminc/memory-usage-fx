@@ -12,6 +12,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.BorderStroke;
@@ -24,7 +25,9 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
 
+import java.io.File;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -37,33 +40,32 @@ import java.util.List;
 
 public class MemoryViewPane extends BorderPane {
 
-    private Timeline animation;
-    private List<MemoryUsageChart> memoryUsageCharts = new ArrayList<>();
-    private StringProperty totalUsedHeap = new SimpleStringProperty();
-    private StringProperty gcCollectionCount = new SimpleStringProperty();
-    private StringProperty gcCollectionTime = new SimpleStringProperty();
-    private StringProperty maxHeap = new SimpleStringProperty();
-    private StringProperty uptTime = new SimpleStringProperty();
-    private MemoryMXBean memoryMBean;
+    private final Timeline animation;
+    private final List<MemoryUsageChart> memoryUsageCharts = new ArrayList<>();
+    private final StringProperty totalUsedHeap = new SimpleStringProperty();
+    private final StringProperty gcCollectionCount = new SimpleStringProperty();
+    private final StringProperty gcCollectionTime = new SimpleStringProperty();
+    private final StringProperty maxHeap = new SimpleStringProperty();
+    private final StringProperty uptTime = new SimpleStringProperty();
+    private final MemoryMXBean memoryMBean;
 
 
     public MemoryViewPane() {
         memoryMBean = ManagementFactory.getMemoryMXBean();
-        //setPadding(new Insets(5));
         setTop(createControlPanel());
-        VBox box = createMainContent();
+        Pane box = createMainContent();
         ScrollPane scrollPane = new ScrollPane(box);
         scrollPane.setFitToWidth(true);
         setCenter(scrollPane);
         final KeyFrame frame =
                 new KeyFrame(javafx.util.Duration.millis(1_000),
-                        (ActionEvent actionEvent) -> updateInformation());
+                        (ActionEvent actionEvent) -> updateHeapInformation());
         animation = new Timeline();
         animation.getKeyFrames().add(frame);
         animation.setCycleCount(Animation.INDEFINITE);
     }
 
-    private VBox createMainContent() {
+    private Pane createMainContent() {
         VBox box = new VBox();
         ObservableList<Node> vBoxChildren = box.getChildren();
 
@@ -89,13 +91,13 @@ public class MemoryViewPane extends BorderPane {
         VBox.setVgrow(memoryUsageChart, Priority.ALWAYS);
     }
 
-    private void updateInformation() {
+    private void updateHeapInformation() {
         MemoryUsage heapMemoryUsage = memoryMBean.getHeapMemoryUsage();
         long used = heapMemoryUsage.getUsed();
-        totalUsedHeap.setValue(formatSize(used));
+        totalUsedHeap.setValue(formatByteSize(used));
 
         long max = heapMemoryUsage.getMax();
-        maxHeap.setValue(formatSize(max));
+        maxHeap.setValue(formatByteSize(max));
 
         for (MemoryUsageChart memoryUsageChart : memoryUsageCharts) {
             memoryUsageChart.update();
@@ -121,11 +123,8 @@ public class MemoryViewPane extends BorderPane {
 
     }
 
-    private String formatSize(long sizeAsBytes){
-        return formatByteInformation(sizeAsBytes);
-    }
 
-    private static String formatByteInformation(long bytes) {
+    private static String formatByteSize(long bytes) {
         int unit =  1000;
         if (bytes < unit) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(unit));
@@ -156,22 +155,47 @@ public class MemoryViewPane extends BorderPane {
     }
 
     private Pane createControlPanel() {
-
-        Pane leftPane = createLeftPane();
         BorderPane borderPane = new BorderPane();
-        Button garbageCollect = new Button("Garbage Collect");
-        garbageCollect.setOnAction(e -> System.gc());
-        borderPane.setLeft(leftPane);
-        borderPane.setRight(garbageCollect);
+        borderPane.setLeft(createLeftPane());
+        borderPane.setRight(createRightPane());
         borderPane.setPadding(new Insets(5, 5, 5, 5));
         Border border = new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT, new Insets(5)));
         borderPane.setBorder(border);
-
         return borderPane;
     }
 
-    private Pane createLeftPane() {
+    private Pane createRightPane(){
+        AnchorPane anchorpane = new AnchorPane();
+        ObservableList<Node> children = anchorpane.getChildren();
 
+        Button garbageCollect = new Button("Garbage Collect");
+        garbageCollect.setOnAction(e -> System.gc());
+        AnchorPane.setTopAnchor(garbageCollect,0d);
+        AnchorPane.setRightAnchor(garbageCollect, 0.0);
+        AnchorPane.setLeftAnchor(garbageCollect, 0.0);
+        children.add(garbageCollect);
+
+        Button heapDump = new Button("Save Heap Dump");
+        heapDump.setOnAction(e -> saveHeapDump());
+        AnchorPane.setBottomAnchor(heapDump,0d);
+        AnchorPane.setRightAnchor(heapDump, 0.0);
+        AnchorPane.setLeftAnchor(heapDump, 0.0);
+        children.add(heapDump);
+
+        return anchorpane;
+    }
+
+    private void saveHeapDump() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Image");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Heap Dump File", "*.hprof"));
+        File file = fileChooser.showSaveDialog(getScene().getWindow());
+        if (file != null) {
+            HeapDumper.dumpHeap(file.getAbsolutePath());
+        }
+    }
+
+    private Pane createLeftPane() {
         GridPane gridPane = new GridPane();
 
         gridPane.add(createLabel("Used Heap : "), 0, 0);
