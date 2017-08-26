@@ -12,7 +12,6 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Separator;
-import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Border;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.BorderStroke;
@@ -165,29 +164,26 @@ public class MemoryViewPane extends BorderPane {
     }
 
     private Pane createRightPane(){
-        AnchorPane anchorpane = new AnchorPane();
-        ObservableList<Node> children = anchorpane.getChildren();
+        VBox vBox = new VBox();
+        vBox.setSpacing(5);
+        ObservableList<Node> children = vBox.getChildren();
 
         Button garbageCollect = new Button("Garbage Collect");
+        garbageCollect.setMaxWidth(Double.MAX_VALUE);
         garbageCollect.setOnAction(e -> System.gc());
-        AnchorPane.setTopAnchor(garbageCollect,0d);
-        AnchorPane.setRightAnchor(garbageCollect, 0.0);
-        AnchorPane.setLeftAnchor(garbageCollect, 0.0);
         children.add(garbageCollect);
 
         Button heapDump = new Button("Save Heap Dump");
+        heapDump.setMaxWidth(Double.MAX_VALUE);
         heapDump.setOnAction(e -> saveHeapDump());
-        AnchorPane.setBottomAnchor(heapDump,0d);
-        AnchorPane.setRightAnchor(heapDump, 0.0);
-        AnchorPane.setLeftAnchor(heapDump, 0.0);
         children.add(heapDump);
 
-        return anchorpane;
+        return vBox;
     }
 
     private void saveHeapDump() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Save Image");
+        fileChooser.setTitle("Save Heap Dump");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Heap Dump File", "*.hprof"));
         File file = fileChooser.showSaveDialog(getScene().getWindow());
         if (file != null) {
