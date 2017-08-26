@@ -32,11 +32,8 @@ import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryType;
 import java.lang.management.MemoryUsage;
 import java.lang.management.RuntimeMXBean;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimeZone;
 
 public class MemoryViewPane extends BorderPane {
 
@@ -49,15 +46,8 @@ public class MemoryViewPane extends BorderPane {
     private StringProperty uptTime = new SimpleStringProperty();
     private MemoryMXBean memoryMBean;
 
-    private static DateFormat DATE_FORMAT = new SimpleDateFormat("HH:mm:ss");
-
-    static {
-        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("GMT"));
-    }
-
 
     public MemoryViewPane() {
-
         memoryMBean = ManagementFactory.getMemoryMXBean();
         //setPadding(new Insets(5));
         setTop(createControlPanel());
@@ -116,7 +106,7 @@ public class MemoryViewPane extends BorderPane {
     private void updateGCStats(){
         RuntimeMXBean rb = ManagementFactory.getRuntimeMXBean();
         long mbeanUptime = rb.getUptime();
-        String formattedUptime = formatDifferent(mbeanUptime);
+        String formattedUptime = formatTimeDifference(mbeanUptime);
         uptTime.setValue(formattedUptime);
 
         long garbageCollectionTime = 0;
@@ -125,26 +115,26 @@ public class MemoryViewPane extends BorderPane {
             gcCollections.add(gc.getName()+"="+gc.getCollectionCount());
             garbageCollectionTime += gc.getCollectionTime();
         }
-        String formattedGCTime = formatDifferent(garbageCollectionTime);
+        String formattedGCTime = formatTimeDifference(garbageCollectionTime);
         gcCollectionCount.setValue(String.join(", ",gcCollections));
         gcCollectionTime.setValue(formattedGCTime);
 
     }
 
     private String formatSize(long sizeAsBytes){
-        return humanReadableByteCount(sizeAsBytes,true);
+        return formatByteInformation(sizeAsBytes);
     }
 
-    private static String humanReadableByteCount(long bytes, boolean si) {
-        int unit = si ? 1000 : 1024;
+    private static String formatByteInformation(long bytes) {
+        int unit =  1000;
         if (bytes < unit) return bytes + " B";
         int exp = (int) (Math.log(bytes) / Math.log(unit));
-        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp-1) + (si ? "" : "i");
+        String pre = Character.toString("kMGTPE".charAt(exp-1)) ;
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
 
-    public String formatDifferent(long durationInMilli){
+    public String formatTimeDifference(long durationInMilli){
         long secondsInMilli = 1_000;
         long minutesInMilli = secondsInMilli * 60;
         long hoursInMilli = minutesInMilli * 60;
@@ -182,9 +172,6 @@ public class MemoryViewPane extends BorderPane {
 
     private Pane createLeftPane() {
 
-//        long max = memoryMBean.getHeapMemoryUsage().getMax();
-//        String maxHeap = FileUtils.byteCountToDisplaySize(max);
-
         GridPane gridPane = new GridPane();
 
         gridPane.add(createLabel("Used Heap : "), 0, 0);
@@ -206,9 +193,7 @@ public class MemoryViewPane extends BorderPane {
         gridPane.add(createLabel("Total GC Time : "), 0, 4);
         Label getTimeLabel = createRightSideLabel(gcCollectionTime);
         gridPane.add(getTimeLabel, 1, 4);
-
         return gridPane;
-
     }
 
     private Label createRightSideLabel(StringProperty totalUsedHeap) {
