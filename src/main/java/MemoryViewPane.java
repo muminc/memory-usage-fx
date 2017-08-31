@@ -125,14 +125,16 @@ public class MemoryViewPane extends BorderPane {
 
     private static String formatByteSize(long bytes) {
         int unit =  1000;
-        if (bytes < unit) return bytes + " B";
+        if (bytes < unit) {
+            return bytes + " B";
+        }
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         String pre = Character.toString("kMGTPE".charAt(exp-1)) ;
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
 
-    public String formatTimeDifference(long durationInMilli){
+    private String formatTimeDifference(long durationInMilli){
         long secondsInMilli = 1_000;
         long minutesInMilli = secondsInMilli * 60;
         long hoursInMilli = minutesInMilli * 60;
